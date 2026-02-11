@@ -1,0 +1,22 @@
+name: 'delete-package-version'
+description: 'Delete a package version in a GitHub repository'
+author: 'David Hörnmark'
+
+inputs:
+  package:
+    description: 'Package name to remove version from'
+    required: true
+  version:
+    description: 'Version to remove'
+    required: true
+  package-type:
+    description:
+      'Type of package (npm, container, maven, rubygems, nuget, docker)'
+    required: true
+  token:
+    description: 'Access token for the GitHub API'
+    required: true
+
+runs:
+  using: node20
+  main: dist/index.js
