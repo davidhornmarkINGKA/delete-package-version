@@ -9,7 +9,7 @@ import { Octokit } from '@octokit/core';
  * @param {string} packageName - The name of the package
  * @param {string} packageType - The type of package (e.g., 'npm', 'container', 'maven')
  * @param {string} version - The version to find
- * @returns {Promise<{id: number, name: string}>}
+ * @returns {Promise<{id: number, name: string} | null>}
  */
 async function findPackageVersion(
   kit,
@@ -18,22 +18,35 @@ async function findPackageVersion(
   packageType,
   version
 ) {
-  const { data: versions } = await kit.request(
-    'GET /orgs/{org}/packages/{package_type}/{package_name}/versions',
-    {
-      org: owner,
-      package_type: packageType,
-      package_name: packageName
+  let versions = [];
+  try {
+    const response = await kit.request(
+      'GET /orgs/{org}/packages/{package_type}/{package_name}/versions',
+      {
+        org: owner,
+        package_type: packageType,
+        package_name: packageName
+      }
+    );
+    versions = response.data;
+  } catch (error) {
+    if (error?.status === 404 || error?.response?.status === 404) {
+      core.info(
+        `Package [${packageName}] not found in organization [${owner}]`
+      );
+      return null;
     }
-  );
+    throw error;
+  }
 
   const pkgVersion = versions.find((v) => v.name === version);
 
   if (!pkgVersion) {
     core.info(`Available versions: ${versions.map((v) => v.name).join(', ')}`);
-    throw new Error(
-      `Version [${version}] of package [${packageName}] not found in organization [${owner}]`
+    core.info(
+      `Package [${packageName}] version [${version}] not found in organization [${owner}]`
     );
+    return null;
   }
 
   core.info(
@@ -73,7 +86,7 @@ async function deleteVersion(kit, owner, packageName, packageType, versionId) {
  * @param {string} packageName - The name of the package
  * @param {string} packageType - The type of package (e.g., 'npm', 'container', 'maven')
  * @param {string} version - The version to delete
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} True when a delete occurred.
  */
 async function deletePackageVersion(
   kit,
@@ -86,7 +99,7 @@ async function deletePackageVersion(
     core.info(
       `Skipping deletion of package [${packageName}] version [${version}] in organization [${owner}] as it is used for CI testing`
     );
-    return;
+    return false;
   }
 
   const pkgVersion = await findPackageVersion(
@@ -97,7 +110,12 @@ async function deletePackageVersion(
     version
   );
 
+  if (!pkgVersion) {
+    return false;
+  }
+
   await deleteVersion(kit, owner, packageName, packageType, pkgVersion.id);
+  return true;
 }
 
 /**
@@ -116,11 +134,23 @@ export async function run() {
       `Deleting package version: [${packageName}@${version}] (${packageType}) from [${owner}/${repo}]`
     );
 
-    await deletePackageVersion(kit, owner, packageName, packageType, version);
-
-    core.info(
-      `Deleted package version: [${packageName}@${version}] (${packageType}) from [${owner}/${repo}]`
+    const didDelete = await deletePackageVersion(
+      kit,
+      owner,
+      packageName,
+      packageType,
+      version
     );
+
+    if (didDelete) {
+      core.info(
+        `Deleted package version: [${packageName}@${version}] (${packageType}) from [${owner}/${repo}]`
+      );
+    } else {
+      core.info(
+        `Package version already absent: [${packageName}@${version}] (${packageType}) in [${owner}/${repo}]`
+      );
+    }
   } catch (error) {
     const {
       response: { data }
