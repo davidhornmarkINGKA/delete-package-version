@@ -33703,6 +33703,23 @@ async function run() {
   const packageName = core.getInput('package', { required: true });
   const packageType = core.getInput('package-type', { required: true });
   const version = core.getInput('version', { required: true });
+  const mustEndWith = core.getInput('must-end-with', { required: false });
+  const mustStartWith = core.getInput('must-start-with', { required: false });
+
+  if (mustEndWith && !version.endsWith(mustEndWith)) {
+    core.info(
+      `Skipping deletion of package [${packageName}] version [${version}] in organization [${owner}] as it does not end with [${mustEndWith}]`
+    );
+    return;
+  }
+
+  if (mustStartWith && !version.startsWith(mustStartWith)) {
+    core.info(
+      `Skipping deletion of package [${packageName}] version [${version}] in organization [${owner}] as it does not start with [${mustStartWith}]`
+    );
+    return;
+  }
+
   const { repo, owner } = github.context.repo;
   const kit = new Octokit({ auth });
 

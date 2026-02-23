@@ -16,6 +16,12 @@ inputs:
   token:
     description: 'Access token for the GitHub API'
     required: true
+  mustEndWith:
+    description: 'Only delete if the version ends with this string'
+    required: false
+  mustStartWith:
+    description: 'Only delete if the version starts with this string'
+    required: false
 
 runs:
   using: node20
