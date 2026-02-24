@@ -16,10 +16,10 @@ inputs:
   token:
     description: 'Access token for the GitHub API'
     required: true
-  mustEndWith:
+  must-end-with:
     description: 'Only delete if the version ends with this string'
     required: false
-  mustStartWith:
+  must-start-with:
     description: 'Only delete if the version starts with this string'
     required: false
 

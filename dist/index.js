@@ -33705,6 +33705,7 @@ async function run() {
   const version = core.getInput('version', { required: true });
   const mustEndWith = core.getInput('must-end-with', { required: false });
   const mustStartWith = core.getInput('must-start-with', { required: false });
+  const { repo, owner } = github.context.repo;
 
   if (mustEndWith && !version.endsWith(mustEndWith)) {
     core.info(
@@ -33719,8 +33720,6 @@ async function run() {
     );
     return;
   }
-
-  const { repo, owner } = github.context.repo;
   const kit = new Octokit({ auth });
 
   try {
